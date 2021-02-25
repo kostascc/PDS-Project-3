@@ -6,6 +6,12 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include "math.h"
+#include <omp.h>
+
+
+#define USE_LOG_FILE
+
 
 using namespace std;
 using namespace parameters;
