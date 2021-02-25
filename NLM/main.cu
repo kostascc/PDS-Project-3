@@ -1,3 +1,8 @@
+/**
+ * (C) 2021 Konstantinos Chatzis
+ * Aristotle University of Thessaloniki
+ **/
+
 #include <iostream>
 #include "parameters.h"
 #include <string.h>

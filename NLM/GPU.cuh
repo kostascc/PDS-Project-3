@@ -1,4 +1,9 @@
-﻿#ifndef GPU_CUH
+/**
+ * (C) 2021 Konstantinos Chatzis
+ * Aristotle University of Thessaloniki
+ **/
+ 
+#ifndef GPU_CUH
 #define GPU_CUH
 
 
@@ -19,6 +24,8 @@
 #include <fstream>
 #include <vector>
 #include "math.h"
+
+
 #include <omp.h>
 
 

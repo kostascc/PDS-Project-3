@@ -1,4 +1,9 @@
-﻿#include "GPU.cuh"
+/**
+ * (C) 2021 Konstantinos Chatzis
+ * Aristotle University of Thessaloniki
+ **/
+
+#include "GPU.cuh"
 
 using namespace std;
 
