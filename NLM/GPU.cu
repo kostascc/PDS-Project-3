@@ -1,4 +1,4 @@
-﻿/**
+/**
  * (C) 2021 Konstantinos Chatzis
  * Aristotle University of Thessaloniki
  **/
@@ -214,8 +214,8 @@ namespace GPU
 
 		log << "\n\n";
 
-		for (int i = 0; i < img.height; i++)
-		{
+		// Save Image
+		img.Write(params.input.outputDir + "/GPU_sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
 			for (int j = 0; j < img.width; j++)
 			{
 				log << img.pixelArr[i * img.width + j] << " ";

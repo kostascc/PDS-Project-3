@@ -209,7 +209,7 @@ namespace CPU
 		//memcpy(&img.pixelArr[0], &pix[0], pow(img.width, 2) * sizeof(float));
 
 
-		img.Write(params.input.outputDir + "/sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
+		img.Write(params.input.outputDir + "/CPU_sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
 
 
 		cout << "CPU Took" << clock.stopClock() << "\n";
