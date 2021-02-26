@@ -1,4 +1,4 @@
-/**
+﻿/**
  * (C) 2021 Konstantinos Chatzis
  * Aristotle University of Thessaloniki
  **/
@@ -21,9 +21,6 @@ namespace GPU
 		cout << "GPU Starting \n";
 #endif
 
-		// Start Clock
-		utils::Clock clock = utils::Clock();
-		clock.startClock();
 
 		utils::ImageFile img = utils::ImageFile();
 		img.Read(params.input.imgPath);
@@ -36,6 +33,10 @@ namespace GPU
 		ofstream log;
 		log.open("./livelog_GPU.txt");
 #endif
+
+		// Start Clock
+		utils::Clock clock = utils::Clock();
+		clock.startClock();
 
 		// TODO: nvcc/linker goes balls with this line for some reason..
 		//float sigmaSquared = (float)pow(params.algorithm.sigma, 2);
@@ -121,23 +122,23 @@ namespace GPU
 		 *   +---+---+---+---+  ← [img_height]
 		 *                   ↑
 		 *              [img_width]
-		 * 
-		 * 
+		 *
+		 *
 		 *   Threads (for each block)
 		 *   +---+---+---+
-		 *   | T |   |   |  
+		 *   | T |   |   |
 		 *   +-----------+
-		 *   |   |   |   | 
+		 *   |   |   |   |
 		 *   +-----------+
 		 *   |   |   |   |
 		 *   +-----------+  ← [THREADS_Y]
 		 *               ↑
 		 *          [THREADS_X]
-		 * 
-		 * 
-		 * 
+		 *
+		 *
+		 *
 		 *  Patches (for each Thread)
-		 * 
+		 *
 		 *   +---+---+---+---+
 		 *   | a | a | b | b |
 		 *   +---------------+
@@ -152,7 +153,7 @@ namespace GPU
 		 *
 		 *   All 'a' patches will be executed by the same thread.
 		 *   The same for 'b' patches etc.
-		 * 
+		 *
 		 *
 		 *************************************************/
 		dim3 threads(THREADS_X, THREADS_Y);
@@ -168,9 +169,17 @@ namespace GPU
 #endif
 
 
+		cout << "Getting In\n";
 
 		kernelWeightSum __KERNEL3(blocks, threads, sharedBytes) (wSum_d, pixN_d, img.width, params.algorithm.patchSize, sigmaSquared);
 		cudaDeviceSynchronize();
+
+		cout << "Half Done\n";
+
+		kernelPatchPixels __KERNEL3(blocks, threads, sharedBytes) (pix_d, wSum_d, pixN_d, img.width, params.algorithm.patchSize, sigmaSquared);
+		cudaDeviceSynchronize();
+
+		cout << "Almost Done\n";
 
 		float* wSum = (float*)malloc((img.width - params.algorithm.patchSize) * (img.width - params.algorithm.patchSize) * sizeof(float));
 		cudaMemcpy(wSum, wSum_d, (img.width - params.algorithm.patchSize) * (img.width - params.algorithm.patchSize) * sizeof(float), cudaMemcpyDeviceToHost);
@@ -205,11 +214,11 @@ namespace GPU
 
 		log << "\n\n";
 
-		for (int i = 0; i < 16; i++)
+		for (int i = 0; i < img.height; i++)
 		{
-			for (int j = 0; j < 16; j++)
+			for (int j = 0; j < img.width; j++)
 			{
-				log << pix[i * 16 + j] << " ";
+				log << img.pixelArr[i * img.width + j] << " ";
 			}
 			log << "\n";
 		}
@@ -239,8 +248,9 @@ namespace GPU
 
 		 // Final Sum of Weights (whithin the block)
 		float* wSum = &_shmem[0];
-		if (!threadIdx.x && !threadIdx.y)
+		if (!threadIdx.y && !threadIdx.x)
 			*wSum = 0.0f;
+
 		__syncthreads();
 
 
@@ -254,23 +264,28 @@ namespace GPU
 		 *******************************************************************/
 
 
-		//int idx = blockIdx.x + threadIdx.x;	// Horizontal Coordinate of Patch
-		//int idy = blockIdx.y + threadIdx.y; // vertical Coordinate of Patch
+		 //int idx = blockIdx.x + threadIdx.x;	// Horizontal Coordinate of Patch
+		 //int idy = blockIdx.y + threadIdx.y; // vertical Coordinate of Patch
 
-		// Noisy Pixel Patch
+		 // Noisy Pixel Patch
 		float* pixF = (float*)&_shmem[1];
-		if (threadIdx.x < patchSize && threadIdx.y < patchSize)
-			pixF[threadIdx.x * patchSize + threadIdx.y] =
-			pixN_d[(blockIdx.x + threadIdx.x) * imgWidth + (blockIdx.y + threadIdx.y)];
+		if (threadIdx.y < patchSize && threadIdx.x < patchSize)
+
+			pixF[threadIdx.y * patchSize + threadIdx.x] =
+			pixN_d[(blockIdx.y + threadIdx.y) * imgWidth + (blockIdx.x + threadIdx.x)];
+
 		__syncthreads();
 
 
 		// Patch Coordinates (Upper Left Corner)
 		int x, y;
 
+		uint16_t patchesY = 1 + imgWidth / THREADS_Y;
+		uint16_t patchesX = 1 + imgWidth / THREADS_Y;
 
-		for (int j = 0; j < THREADS_Y; j++)
-			for (int i = 0; i < THREADS_X; i++)
+
+		for (int j = 0; j < patchesY; j++)
+			for (int i = 0; i < patchesX; i++)
 			{
 				x = (threadIdx.x * THREADS_X + i);
 				y = (threadIdx.y * THREADS_Y + j);
@@ -283,7 +298,7 @@ namespace GPU
 				{
 					// Patch at coordinates (x,y)
 
-					float d = 0.0f;
+					double d = 0.0f;
 
 					// For Each pixel in a patch
 					for (int yy = 0; yy < patchSize; yy++)
@@ -295,17 +310,17 @@ namespace GPU
 							d += a * a;
 						}
 
-					// Get Exponential
-					d = exp(-d / sigmaSquared);
-					atomicAdd(wSum, d);
+					// Exponential Distance
+					d = (double)exp(-d / sigmaSquared);
+					atomicAdd(wSum, (float)d);
 
 				}
 			}
 		__syncthreads();
 
 		// Save wSum, based on the pixel coordinates
-		if(!threadIdx.x && !threadIdx.y)
-		wSum_d[blockIdx.y * (imgWidth - patchSize) + blockIdx.x] += wSum[0];
+		if (!threadIdx.x && !threadIdx.y)
+			wSum_d[blockIdx.y * (imgWidth - patchSize) + blockIdx.x] += *wSum;
 
 		//__syncthreads();
 
@@ -314,12 +329,100 @@ namespace GPU
 
 
 
-	__global__ void kernelPatchPixels(float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared)
+	__global__ void kernelPatchPixels(float* pix_d, float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared)
 	{
 
 		// Shared Memory
 		extern __shared__ float _shmem[];
 
+		/*******************************************************************
+		 *      wSum                              _shmem
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 * | &_shmem[0] |   +->    | o |   |   |   |   | . . . |   |   |
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 *                           ↑
+		 *                       _shmem[0]
+		 *******************************************************************/
+
+		 // Final Sum of Weights (whithin the block)
+		float* wSum = &_shmem[0];
+		if (!threadIdx.x && !threadIdx.y)
+			*wSum = wSum_d[blockIdx.y * (imgWidth - patchSize) + blockIdx.x];
+		__syncthreads();
+
+
+		/*******************************************************************
+		 *      pixF                              _shmem
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 * | &_shmem[1] |   +->    |   | o | o | o | o | . . . | o | o |
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 *                               ↑                           ↑
+		 *                           _shmem[1]   ...   _shmem[1+patch_size^2-1]
+		 *******************************************************************/
+
+		 // Noisy Pixel Patch
+		float* pixF = (float*)&_shmem[1];
+		if (threadIdx.x < patchSize && threadIdx.y < patchSize)
+
+			pixF[threadIdx.y * patchSize + threadIdx.x] =
+			pixN_d[(blockIdx.y + threadIdx.y) * imgWidth + (blockIdx.x + threadIdx.x)];
+
+		__syncthreads();
+
+
+		// Weight Map (for a patch)
+		//float* w = new float[patchSize * patchSize];
+
+		// Patch Coordinates (Upper Left Corner)
+		int x, y;
+
+		uint16_t patchesY = 1 + imgWidth / THREADS_Y;
+		uint16_t patchesX = 1 + imgWidth / THREADS_Y;
+
+		for (int j = 0; j < patchesY; j++)
+			for (int i = 0; i < patchesX; i++)
+			{
+				x = (threadIdx.x * THREADS_X + i);
+				y = (threadIdx.y * THREADS_Y + j);
+
+				// Sum Only patches of different coordinates and 
+				// within boundaries
+				// (don't weight the patch with itself)
+				if (blockIdx.x != x && blockIdx.y != y
+					&& x < imgWidth && y < imgWidth)
+				{
+					// Patch at coordinates (x,y)
+
+					double d = 0.0f;
+
+					// For Each pixel in a patch
+					for (int yy = 0; yy < patchSize; yy++)
+						for (int xx = 0; xx < patchSize; xx++)
+						{
+							int a = pixF[yy * patchSize + xx];
+							int b = pixN_d[(y + yy) * imgWidth + (x + xx)];
+							a = a - b;
+							d += a * a;
+						}
+
+					// Exponential Distance
+					d = (double)exp(-d / sigmaSquared);
+					d /= *wSum;
+
+					// d is the weight for this patch
+
+					// For Each pixel in the same patch
+					for (int yy = 0; yy < patchSize; yy++)
+						for (int xx = 0; xx < patchSize; xx++)
+						{
+							pix_d[(y + yy) * imgWidth + (x + xx)] += d * pixN_d[(y + yy) * imgWidth + (x + xx)];
+						}
+
+					//atomicAdd(wSum, (float)d);
+
+				}
+			}
+		__syncthreads();
 
 		return;
 	}

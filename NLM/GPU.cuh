@@ -62,7 +62,7 @@ namespace GPU
 
 	__global__ void kernelWeightSum(float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared);
 
-	__global__ void kernelPatchPixels(float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared);
+	__global__ void kernelPatchPixels(float* pix_d, float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared);
 
 	int iDivUp(int a, int b);
 
