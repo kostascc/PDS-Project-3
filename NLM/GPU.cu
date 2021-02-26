@@ -1,4 +1,4 @@
-﻿/**
+/**
  * (C) 2021 Konstantinos Chatzis
  * Aristotle University of Thessaloniki
  **/
@@ -227,6 +227,99 @@ namespace GPU
 
 		// Shared Memory
 		extern __shared__ float _shmem[];
+
+		/*******************************************************************
+		 *      wSum                              _shmem
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 * | &_shmem[0] |   +->    | o |   |   |   |   | . . . |   |   |
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 *                           ↑
+		 *                       _shmem[0]
+		 *******************************************************************/
+
+		 // Final Sum of Weights (whithin the block)
+		float* wSum = &_shmem[0];
+		if (!threadIdx.x && !threadIdx.y)
+			*wSum = 0.0f;
+		__syncthreads();
+
+
+		/*******************************************************************
+		 *      pixF                              _shmem
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 * | &_shmem[1] |   +->    |   | o | o | o | o | . . . | o | o |
+		 * +------------+          +---+---+---+---+---+-------+---+---+
+		 *                               ↑                           ↑
+		 *                           _shmem[1]   ...   _shmem[1+patch_size^2-1]
+		 *******************************************************************/
+
+
+		//int idx = blockIdx.x + threadIdx.x;	// Horizontal Coordinate of Patch
+		//int idy = blockIdx.y + threadIdx.y; // vertical Coordinate of Patch
+
+		// Noisy Pixel Patch
+		float* pixF = (float*)&_shmem[1];
+		if (threadIdx.x < patchSize && threadIdx.y < patchSize)
+			pixF[threadIdx.x * patchSize + threadIdx.y] =
+			pixN_d[(blockIdx.x + threadIdx.x) * imgWidth + (blockIdx.y + threadIdx.y)];
+		__syncthreads();
+
+
+		// Patch Coordinates (Upper Left Corner)
+		int x, y;
+
+
+		for (int j = 0; j < THREADS_Y; j++)
+			for (int i = 0; i < THREADS_X; i++)
+			{
+				x = (threadIdx.x * THREADS_X + i);
+				y = (threadIdx.y * THREADS_Y + j);
+
+				// Sum Only patches of different coordinates and 
+				// within boundaries
+				// (don't weight the patch with itself)
+				if (blockIdx.x != x && blockIdx.y != y
+					&& x < imgWidth && y < imgWidth)
+				{
+					// Patch at coordinates (x,y)
+
+					float d = 0.0f;
+
+					// For Each pixel in a patch
+					for (int yy = 0; yy < patchSize; yy++)
+						for (int xx = 0; xx < patchSize; xx++)
+						{
+							int a = pixF[yy * patchSize + xx];
+							int b = pixN_d[(y + yy) * imgWidth + (x + xx)];
+							a = a - b;
+							d += a * a;
+						}
+
+					// Get Exponential
+					d = exp(-d / sigmaSquared);
+					atomicAdd(wSum, d);
+
+				}
+			}
+		__syncthreads();
+
+		// Save wSum, based on the pixel coordinates
+		if(!threadIdx.x && !threadIdx.y)
+		wSum_d[blockIdx.y * (imgWidth - patchSize) + blockIdx.x] += wSum[0];
+
+		//__syncthreads();
+
+		return;
+	}
+
+
+
+	__global__ void kernelPatchPixels(float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared)
+	{
+
+		// Shared Memory
+		extern __shared__ float _shmem[];
+
 
 		return;
 	}
