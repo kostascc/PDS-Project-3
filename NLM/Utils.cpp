@@ -155,8 +155,10 @@ void utils::ImageFile::Write(string filePath)
 
 		if (pixelArr[i] > 255.0f)
 		{
-			cout << "pixel greater than 255.0f found!\n";
-			cout << "(" << pixelArr[i] << ")\n";
+//#ifdef DEBUG
+//			cout << "pixel greater than 255.0f found!\n";
+//			cout << "(" << pixelArr[i] << ")\n";
+//#endif
 #ifdef FIX_PIXELS_OUT_OF_BOUND
 			pixelArr[i] = 255.0f;
 #else
@@ -166,8 +168,10 @@ void utils::ImageFile::Write(string filePath)
 
 		if (pixelArr[i] < 0.0f)
 		{
-			cout << "pixel lower than 0.0f found!\n";
-			cout << "(" << pixelArr[i] << ")\n";
+//#ifdef DEBUG
+//			cout << "pixel lower than 0.0f found!\n";
+//			cout << "(" << pixelArr[i] << ")\n";
+//#endif
 #ifdef FIX_PIXELS_OUT_OF_BOUND
 			pixelArr[i] = 0.0f;
 #else
