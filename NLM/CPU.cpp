@@ -28,7 +28,7 @@ namespace CPU
 
 #ifdef USE_LOG_FILE
 		ofstream log;
-		log.open("./livelog.txt");
+		log.open("./livelog_CPU.txt");
 #endif
 
 
@@ -38,9 +38,12 @@ namespace CPU
 
 
 		// For Each patch of size 'patchSize'
+#ifdef USE_OPENMP
 #pragma omp parallel for
+#endif
 		for (int y_f = 0; y_f < img.width - params.algorithm.patchSize; y_f++)
 		{
+			log << "\n";
 			cout << "y " << y_f << "\n";
 			for (int x_f = 0; x_f < img.width - params.algorithm.patchSize; x_f++)
 			{
@@ -126,6 +129,9 @@ namespace CPU
 				}
 
 
+				log << wSum << " ";
+
+
 				// for each weight in the map
 				for (int y_g = 0; y_g < wMapWidth; y_g++)
 				{
@@ -186,14 +192,14 @@ namespace CPU
 
 		log << "\n\n";
 
-		for (int i = 0; i < 16; i++)
+		/*for (int i = 0; i < 16; i++)
 		{
 			for (int j = 0; j < 16; j++)
 			{
 				log << pix[i * 16 + j] << " ";
 			}
 			log << "\n";
-		}
+		}*/
 
 		log.close();
 #endif
@@ -201,16 +207,10 @@ namespace CPU
 		memcpy(&img.pixelArr[0], &pix[0], pow(img.width, 2) * sizeof(float));
 
 
-		//clock.sleep(4 * 1000);
-
-
 		img.Write(params.input.outputDir + "/sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
 
 
-
-		return 0;
-
-		cout << clock.stopClock() << "\n";
+		cout << "CPU Took" << clock.stopClock() << "\n";
 
 		return 0;
 	}
