@@ -38,14 +38,13 @@
 #define THREADS_Y 8
 
 
-// nvcc errors from intellisense workaround.
+// Workaround for Intellisense errors
 #ifdef __INTELLISENSE__
 #define __KERNEL2(grid, block)
 #define __KERNEL3(grid, block, sh_mem)
 #define __KERNEL4(grid, block, sh_mem, stream)
 #define __syncthreads();
 #define atomicAdd(a,b);
-
 #else
 #define __KERNEL2(grid, block) <<< grid, block >>>
 #define __KERNEL3(grid, block, sh_mem) <<< grid, block, sh_mem >>>
