@@ -36,8 +36,14 @@ namespace CPU
 
 		float* pix = (float*)calloc(pow(img.width, 2), sizeof(float));
 
+		float sigmaSquared = pow(params.algorithm.sigma, 2);
+
+		// Width of weight matrix
+		int wMapWidth = img.width - params.algorithm.patchSize;
 
 		// For Each patch of size 'patchSize'
+
+
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
@@ -51,7 +57,7 @@ namespace CPU
 				// x: Width
 				// y: height
 
-				
+
 
 				// Create Pixel Matrix of Patch
 				float* pixF = (float*)malloc(patchSizeFloat);
@@ -65,15 +71,11 @@ namespace CPU
 				// Sum of weights
 				double wSum = 0.0f;
 
-				// Width of weight matrix
-				int wMapWidth = img.width - params.algorithm.patchSize;
 
 				// Create Weight map
 				double* w = (double*)calloc(pow(wMapWidth, 2), sizeof(double));
 
-				float sigmaSquared = pow(params.algorithm.sigma, 2);
 
-				
 				// for Each other patch
 				for (int y_g = 0; y_g < wMapWidth; y_g++)
 				{
@@ -120,7 +122,7 @@ namespace CPU
 					}
 				}
 
-				
+
 
 				// Clean pixels in batch
 				for (int i = 0; i < pow(params.algorithm.patchSize, 2); i++)
@@ -204,7 +206,7 @@ namespace CPU
 		log.close();
 #endif
 
-		memcpy(&img.pixelArr[0], &pix[0], pow(img.width, 2) * sizeof(float));
+		//memcpy(&img.pixelArr[0], &pix[0], pow(img.width, 2) * sizeof(float));
 
 
 		img.Write(params.input.outputDir + "/sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
