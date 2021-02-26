@@ -28,7 +28,7 @@ namespace parameters
 
 			float sigma = 0.08f;
 
-			int patchSize = 3;
+			int patchSize = 5;
 
 		};
 		Algorithm algorithm;
