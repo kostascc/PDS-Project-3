@@ -1,4 +1,4 @@
-/**
+﻿/**
  * (C) 2021 Konstantinos Chatzis
  * Aristotle University of Thessaloniki
  **/
@@ -66,7 +66,6 @@ namespace GPU
 		// Device' resulting Pixels
 		float* pix_d;
 		cudaMalloc(&pix_d, img.width * img.width * sizeof(float));
-		//cudaMallocManaged(&pix_d, sizeof(Parameters)); // not managed, so it stays between kernel calls
 		// Set Pixels to 0.0f
 		cudaMemset(pix_d, 0.0f, img.width * img.width * sizeof(float));
 
@@ -168,32 +167,26 @@ namespace GPU
 			<< "> Shared Memory Per ThreadBlock: " << sharedBytes << " B\n";
 #endif
 
-
-		cout << "Getting In\n";
-
+		// Run Weight Summation Kernel
 		kernelWeightSum __KERNEL3(blocks, threads, sharedBytes) (wSum_d, pixN_d, img.width, params.algorithm.patchSize, sigmaSquared);
 		cudaDeviceSynchronize();
 
-		cout << "Half Done\n";
-
+		// Run Patching Kernel
 		kernelPatchPixels __KERNEL3(blocks, threads, sharedBytes) (pix_d, wSum_d, pixN_d, img.width, params.algorithm.patchSize, sigmaSquared);
 		cudaDeviceSynchronize();
 
-		cout << "Almost Done\n";
+		//float* wSum = (float*)malloc((img.width - params.algorithm.patchSize) * (img.width - params.algorithm.patchSize) * sizeof(float));
+		//cudaMemcpy(wSum, wSum_d, (img.width - params.algorithm.patchSize) * (img.width - params.algorithm.patchSize) * sizeof(float), cudaMemcpyDeviceToHost);
 
-		float* wSum = (float*)malloc((img.width - params.algorithm.patchSize) * (img.width - params.algorithm.patchSize) * sizeof(float));
-		cudaMemcpy(wSum, wSum_d, (img.width - params.algorithm.patchSize) * (img.width - params.algorithm.patchSize) * sizeof(float), cudaMemcpyDeviceToHost);
-
-		for (int i = 0; i < img.width - params.algorithm.patchSize; i++)
-		{
-			for (int j = 0; j < img.width - params.algorithm.patchSize; j++)
-			{
-				log << wSum[i * (img.width - params.algorithm.patchSize) + j] << " ";
-			}
-			log << "\n";
-		}
-
-		log << "\n\n\n";
+		//for (int i = 0; i < img.width - params.algorithm.patchSize; i++)
+		//{
+		//	for (int j = 0; j < img.width - params.algorithm.patchSize; j++)
+		//	{
+		//		log << wSum[i * (img.width - params.algorithm.patchSize) + j] << " ";
+		//	}
+		//	log << "\n";
+		//}
+		//log << "\n\n\n";
 
 		// Copy Resulting Pixels into hosts' image matrix
 		cudaMemcpy(img.pixelArr, pix_d, img.width * img.width * sizeof(float), cudaMemcpyDeviceToHost);
@@ -202,29 +195,28 @@ namespace GPU
 		cudaFree(wSum_d);
 		cudaFree(pix_d);
 
-		// Save Image
-		img.Write(params.input.outputDir + "/sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
-
-
+		
 		cout << "GPU Took " << clock.stopClock() << "\n";
 
-
-
-#ifdef USE_LOG_FILE
-
-		log << "\n\n";
+//#ifdef USE_LOG_FILE
+//
+//		log << "\n\n";
+//
+//		for (int i = 0; i < img.height; i++)
+//		{
+//			for (int j = 0; j < img.width; j++)
+//			{
+//				log << img.pixelArr[i * img.width + j] << " ";
+//			}
+//			log << "\n";
+//		}
+//
+//		log.close();
+//#endif
 
 		// Save Image
 		img.Write(params.input.outputDir + "/GPU_sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
-			for (int j = 0; j < img.width; j++)
-			{
-				log << img.pixelArr[i * img.width + j] << " ";
-			}
-			log << "\n";
-		}
 
-		log.close();
-#endif
 
 		return 0;
 	}
@@ -236,6 +228,7 @@ namespace GPU
 
 		// Shared Memory
 		extern __shared__ float _shmem[];
+
 
 		/*******************************************************************
 		 *      wSum                              _shmem
@@ -280,9 +273,10 @@ namespace GPU
 		// Patch Coordinates (Upper Left Corner)
 		int x, y;
 
-		uint16_t patchesY = 1 + imgWidth / THREADS_Y;
-		uint16_t patchesX = 1 + imgWidth / THREADS_Y;
+		int patchesY = 1 + imgWidth / THREADS_Y;
+		int patchesX = 1 + imgWidth / THREADS_X;
 
+		__syncthreads();
 
 		for (int j = 0; j < patchesY; j++)
 			for (int i = 0; i < patchesX; i++)
@@ -298,7 +292,7 @@ namespace GPU
 				{
 					// Patch at coordinates (x,y)
 
-					double d = 0.0f;
+					float d = 0.0f;
 
 					// For Each pixel in a patch
 					for (int yy = 0; yy < patchSize; yy++)
@@ -311,7 +305,7 @@ namespace GPU
 						}
 
 					// Exponential Distance
-					d = (double)exp(-d / sigmaSquared);
+					d = (float)exp(-d / sigmaSquared);
 					atomicAdd(wSum, (float)d);
 
 				}
@@ -321,8 +315,6 @@ namespace GPU
 		// Save wSum, based on the pixel coordinates
 		if (!threadIdx.x && !threadIdx.y)
 			wSum_d[blockIdx.y * (imgWidth - patchSize) + blockIdx.x] += *wSum;
-
-		//__syncthreads();
 
 		return;
 	}
@@ -334,6 +326,7 @@ namespace GPU
 
 		// Shared Memory
 		extern __shared__ float _shmem[];
+
 
 		/*******************************************************************
 		 *      wSum                              _shmem
@@ -360,7 +353,7 @@ namespace GPU
 		 *                           _shmem[1]   ...   _shmem[1+patch_size^2-1]
 		 *******************************************************************/
 
-		 // Noisy Pixel Patch
+		// Noisy Pixel Patch
 		float* pixF = (float*)&_shmem[1];
 		if (threadIdx.x < patchSize && threadIdx.y < patchSize)
 
@@ -370,14 +363,13 @@ namespace GPU
 		__syncthreads();
 
 
-		// Weight Map (for a patch)
-		//float* w = new float[patchSize * patchSize];
-
 		// Patch Coordinates (Upper Left Corner)
 		int x, y;
 
-		uint16_t patchesY = 1 + imgWidth / THREADS_Y;
-		uint16_t patchesX = 1 + imgWidth / THREADS_Y;
+		int patchesY = 1 + imgWidth / THREADS_Y;
+		int patchesX = 1 + imgWidth / THREADS_X;
+
+		__syncthreads();
 
 		for (int j = 0; j < patchesY; j++)
 			for (int i = 0; i < patchesX; i++)
@@ -393,7 +385,7 @@ namespace GPU
 				{
 					// Patch at coordinates (x,y)
 
-					double d = 0.0f;
+					float d = 0.0f;
 
 					// For Each pixel in a patch
 					for (int yy = 0; yy < patchSize; yy++)
@@ -406,8 +398,8 @@ namespace GPU
 						}
 
 					// Exponential Distance
-					d = (double)exp(-d / sigmaSquared);
-					d /= *wSum;
+					d = (float)exp(-d / sigmaSquared);
+					d = d / *wSum;
 
 					// d is the weight for this patch
 
@@ -417,8 +409,6 @@ namespace GPU
 						{
 							pix_d[(y + yy) * imgWidth + (x + xx)] += d * pixN_d[(y + yy) * imgWidth + (x + xx)];
 						}
-
-					//atomicAdd(wSum, (float)d);
 
 				}
 			}
