@@ -33,7 +33,6 @@ int main(int argc, char* argv[])
 		cout << " -i ./<dir>/<img>.bmp : Input Image (../in/face_128x128.bmp)\n";
 		cout << " -o ./<out_dir>       : Output Directory (../out)\n";
 		cout << " -s <float>           : Sigma (0.05)\n";
-		cout << " -p <int>             : Patch Size (5)\n";
 
 	}
 
@@ -68,10 +67,10 @@ int main(int argc, char* argv[])
 			params.algorithm.sigma = (i < argc) ? atof(argv[i]) : 0.05f;
 		}
 
-		else if ((string(argv[i]) == "-p")) {
+		/*else if ((string(argv[i]) == "-p")) {
 			i++;
 			params.algorithm.patchSize = (i < argc) ? atoi(argv[i]) : 5;
-		}
+		}*/
 
 	}
 
