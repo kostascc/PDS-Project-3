@@ -21,10 +21,9 @@
 #include "device_functions.h"
 #include "device_launch_parameters.h"
 #include "cuda_device_runtime_api.h"
+#include "vector_functions.h"
 //#include "cuda/atomic"
 //#include "cuda/std/atomic"
-
-
 
 
 #define DEBUG
@@ -37,14 +36,20 @@
 #define THREADS_X 8
 #define THREADS_Y 8
 
+#define PATCH_SIZE 5
 
 // Workaround for Intellisense errors
 #ifdef __INTELLISENSE__
 #define __KERNEL2(grid, block)
 #define __KERNEL3(grid, block, sh_mem)
 #define __KERNEL4(grid, block, sh_mem, stream)
-#define __syncthreads();
-#define atomicAdd(a,b);
+#define __syncthreads() ;
+#define atomicAdd(a,b) *a+=b
+#define __expf(a) exp(a)
+#define __fsub_rn(a,b) a-b
+#define __fadd_rn(a,b) a+b
+#define __fmul_rn(a,b) a*b
+#define __fdiv_rn(a,b) a/b
 #else
 #define __KERNEL2(grid, block) <<< grid, block >>>
 #define __KERNEL3(grid, block, sh_mem) <<< grid, block, sh_mem >>>
@@ -60,9 +65,7 @@ namespace GPU
 
 	int run(Parameters params);
 
-	__global__ void kernelWeightSum(float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared);
-
-	__global__ void kernelPatchPixels(float* pix_d, float* wSum_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared);
+	__global__ void kernelWeightSum(float* pix_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared);
 
 	int iDivUp(int a, int b);
 
