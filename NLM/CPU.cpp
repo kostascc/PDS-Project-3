@@ -18,10 +18,6 @@ namespace CPU
 		cout << "CPU Starting \n";
 #endif
 
-		// Start Clock
-		utils::Clock clock = utils::Clock();
-		clock.startClock();
-
 		utils::ImageFile img = utils::ImageFile();
 		img.Read(params.input.imgPath);
 
@@ -188,6 +184,8 @@ namespace CPU
 			}
 
 		}
+
+		cout << "CPU Took" << clock.stopClock() << "\n";
 
 
 #ifdef USE_LOG_FILE

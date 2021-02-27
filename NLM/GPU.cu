@@ -61,10 +61,6 @@ namespace GPU
 		log.open("./livelog_GPU.txt");
 #endif
 
-		// Start Clock
-		utils::Clock clock = utils::Clock();
-		clock.startClock();
-
 		// TODO: nvcc/linker goes balls with this line for some reason..
 		//float sigmaSquared = (float)pow(params.algorithm.sigma, 2);
 		float sigmaSquared = POW2(params.algorithm.sigma);
@@ -199,6 +195,9 @@ namespace GPU
 			<< "> Shared Memory Per ThreadBlock: " << sharedBytes << " B\n";
 #endif
 
+		// Start Clock
+		utils::Clock clock = utils::Clock();
+		clock.startClock();
 
 		// __KERNEL3(a,b,c)  is translated to  <<<a,b,c>>>
 		// it has been defined as such, because intellisense doesn't recognize cuda keywords
@@ -207,6 +206,8 @@ namespace GPU
 		kernel __KERNEL3(blocks, threads, sharedBytes) (pix_d, pixN_d, img.width, sigmaSquared);
 		cudaDeviceSynchronize();
 		cudaCheckErrors("Kernel: 1");
+
+		cout << "GPU Took " << clock.stopClock() << "\n";
 
 
 		// Copy Resulting Pixels into hosts' image matrix
@@ -218,8 +219,6 @@ namespace GPU
 		cudaFree(pix_d);
 		cudaCheckErrors("Free: pix_d");
 
-
-		cout << "GPU Took " << clock.stopClock() << "\n";
 
 		// Save Image
 		img.Write(params.input.outputDir + "/GPU_sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
