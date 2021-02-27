@@ -37,6 +37,9 @@
 #define FIX_PIXELS_OUT_OF_BOUND
 
 
+#ifndef POW2
+#define POW2(a) (a)*(a)
+#endif
 #ifndef MAX
 #define MAX(a,b) ((a < b) ? b : a)
 #endif

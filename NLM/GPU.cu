@@ -1,4 +1,4 @@
-﻿/**
+/**
  * (C) 2021 Konstantinos Chatzis
  * Aristotle University of Thessaloniki
  **/
@@ -40,7 +40,7 @@ namespace GPU
 		img.Read(params.input.imgPath);
 
 #ifdef DEBUG
-		cout << "Image: " << img.width << "x" << img.width << " (Pixels: " << pow(img.width, 2) << ")\n";
+		cout << "Image: " << img.width << "x" << img.width << " (Pixels: " << POW2(img.width) << ")\n";
 #endif
 
 #ifdef USE_LOG_FILE
@@ -54,7 +54,7 @@ namespace GPU
 
 		// TODO: nvcc/linker goes balls with this line for some reason..
 		//float sigmaSquared = (float)pow(params.algorithm.sigma, 2);
-		float sigmaSquared = params.algorithm.sigma * params.algorithm.sigma;
+		float sigmaSquared = POW2(params.algorithm.sigma);
 
 
 		/*********************************************
@@ -72,18 +72,18 @@ namespace GPU
 
 		 // Device' Noisy Pixels
 		float* pixN_d;
-		cudaMalloc(&pixN_d, img.width * img.width * sizeof(float));
+		cudaMalloc(&pixN_d, POW2(img.width) * sizeof(float));
 		cudaCheckErrors("malloc: pixN_d");
 		// Copy Pixels from Image File
-		cudaMemcpy(pixN_d, img.pixelArr, img.width * img.width * sizeof(float), cudaMemcpyHostToDevice);
+		cudaMemcpy(pixN_d, img.pixelArr, POW2(img.width) * sizeof(float), cudaMemcpyHostToDevice);
 		cudaCheckErrors("Memcpy: pixN_d");
 
 		// Device' resulting Pixels
 		float* pix_d;
-		cudaMalloc(&pix_d, img.width * img.width * sizeof(float));
+		cudaMalloc(&pix_d, POW2(img.width) * sizeof(float));
 		cudaCheckErrors("Malloc: pix_d");
 		// Set Pixels to 0.0f
-		cudaMemset(pix_d, 0.0f, img.width * img.width * sizeof(float));
+		cudaMemset(pix_d, 0.0f, POW2(img.width) * sizeof(float));
 		cudaCheckErrors("Memset: pix_d");
 
 
@@ -123,8 +123,7 @@ namespace GPU
 		 *   [ 1 + (patch_size * patch_size) ] * <float>
 		 *************************************************/
 		 // Shared memory (Bytes)
-		int sharedBytesWSum = (1 + pow(PATCH_SIZE, 2)) * sizeof(float);
-		int sharedBytesPatch = (1 + 2 * pow(PATCH_SIZE, 2)) * sizeof(float);
+		int sharedBytes = (1 + POW2(PATCH_SIZE)) * sizeof(float);
 
 
 		/*************************************************
@@ -183,8 +182,8 @@ namespace GPU
 			<< "> Blocks / Threads / Patches: "
 			<< "[" << blocks.x << "," << blocks.y << "] / "
 			<< "[" << threads.x << "," << threads.y << "] / "
-			<< pow(img.width - PATCH_SIZE, 2) << "\n"
-			<< "> Shared Memory Per ThreadBlock: " << sharedBytesWSum << " B\n";
+			<< POW2(img.width - PATCH_SIZE) << "\n"
+			<< "> Shared Memory Per ThreadBlock: " << sharedBytes << " B\n";
 #endif
 
 
@@ -195,7 +194,7 @@ namespace GPU
 
 
 		// Copy Resulting Pixels into hosts' image matrix
-		cudaMemcpy(img.pixelArr, pix_d, img.width * img.width * sizeof(float), cudaMemcpyDeviceToHost);
+		cudaMemcpy(img.pixelArr, pix_d, POW2(img.width) * sizeof(float), cudaMemcpyDeviceToHost);
 		cudaCheckErrors("Memcpy: pix_d (To Host)");
 
 		cudaFree(pixN_d);

@@ -32,26 +32,28 @@ namespace CPU
 #endif
 
 
-		int patchSizeFloat = PATCH_SIZE * PATCH_SIZE * sizeof(float);
+		int patchSizeFloat = POW2(PATCH_SIZE) * sizeof(float);
 
-		float* pix = (float*)calloc(pow(img.width, 2), sizeof(float));
+		float* pix = (float*)calloc(POW2(img.width), sizeof(float));
 
-		float sigmaSquared = pow(params.algorithm.sigma, 2);
+		float sigmaSquared = POW2(params.algorithm.sigma);
 
 		// Width of weight matrix
 		int wMapWidth = img.width - PATCH_SIZE;
 
-		// For Each patch of size 'patchSize'
+		// Start Clock
+		utils::Clock clock = utils::Clock();
+		clock.startClock();
 
+		// For Each patch of size 'patchSize'
 
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-		for (int y_f = 0; y_f < img.width - PATCH_SIZE; y_f++)
+		for (int y_f = 0; y_f < img.width - PATCH_SIZE + 1; y_f++)
 		{
-			log << "\n";
-			cout << "y " << y_f << "\n";
-			for (int x_f = 0; x_f < img.width - PATCH_SIZE; x_f++)
+			cout << ".";
+			for (int x_f = 0; x_f < img.width - PATCH_SIZE + 1; x_f++)
 			{
 				// x_f, y_f: Coordinates of patch starting pixel
 				// x: Width
@@ -73,7 +75,7 @@ namespace CPU
 
 
 				// Create Weight map
-				double* w = (double*)calloc(pow(wMapWidth, 2), sizeof(double));
+				double* w = (double*)calloc(POW2(wMapWidth), sizeof(double));
 
 
 				// for Each other patch
@@ -104,9 +106,10 @@ namespace CPU
 
 						// Find Euclidean Distance squared
 						double d = 0.0f;
-						for (int i = 0; i < pow(PATCH_SIZE, 2); i++)
+						for (int i = 0; i < POW2(PATCH_SIZE); i++)
 						{
-							d += pow((pixF[i] - pixG[i]), 2);
+
+							d += POW2((pixF[i] - pixG[i]));
 						}
 
 						d = expf(-d / (sigmaSquared));
@@ -125,13 +128,10 @@ namespace CPU
 
 
 				// Clean pixels in batch
-				for (int i = 0; i < pow(PATCH_SIZE, 2); i++)
+				for (int i = 0; i < POW2(PATCH_SIZE); i++)
 				{
 					pixF[i] = 0.0f;
 				}
-
-
-				log << wSum << " ";
 
 
 				// for each weight in the map
@@ -154,7 +154,7 @@ namespace CPU
 
 
 						// for Each pixel in the patch
-						for (int i = 0; i < pow(PATCH_SIZE, 2); i++)
+						for (int i = 0; i < POW2(PATCH_SIZE); i++)
 						{
 							pixF[i] += w[y_g * wMapWidth + x_g] * pixG[i];
 						}
@@ -206,13 +206,9 @@ namespace CPU
 		log.close();
 #endif
 
-		memcpy(&img.pixelArr[0], &pix[0], pow(img.width, 2) * sizeof(float));
-
+		memcpy(&img.pixelArr[0], &pix[0], POW2(img.width) * sizeof(float));
 
 		img.Write(params.input.outputDir + "/CPU_sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
-
-
-		cout << "CPU Took" << clock.stopClock() << "\n";
 
 		return 0;
 	}
