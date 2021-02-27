@@ -26,9 +26,7 @@ namespace parameters
 		struct Algorithm
 		{
 
-			float sigma = 0.08f;
-
-			int patchSize = 5;
+			float sigma = 0.13f;
 
 		};
 		Algorithm algorithm;

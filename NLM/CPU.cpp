@@ -32,14 +32,14 @@ namespace CPU
 #endif
 
 
-		int patchSizeFloat = params.algorithm.patchSize * params.algorithm.patchSize * sizeof(float);
+		int patchSizeFloat = PATCH_SIZE * PATCH_SIZE * sizeof(float);
 
 		float* pix = (float*)calloc(pow(img.width, 2), sizeof(float));
 
 		float sigmaSquared = pow(params.algorithm.sigma, 2);
 
 		// Width of weight matrix
-		int wMapWidth = img.width - params.algorithm.patchSize;
+		int wMapWidth = img.width - PATCH_SIZE;
 
 		// For Each patch of size 'patchSize'
 
@@ -47,11 +47,11 @@ namespace CPU
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-		for (int y_f = 0; y_f < img.width - params.algorithm.patchSize; y_f++)
+		for (int y_f = 0; y_f < img.width - PATCH_SIZE; y_f++)
 		{
 			log << "\n";
 			cout << "y " << y_f << "\n";
-			for (int x_f = 0; x_f < img.width - params.algorithm.patchSize; x_f++)
+			for (int x_f = 0; x_f < img.width - PATCH_SIZE; x_f++)
 			{
 				// x_f, y_f: Coordinates of patch starting pixel
 				// x: Width
@@ -61,11 +61,11 @@ namespace CPU
 
 				// Create Pixel Matrix of Patch
 				float* pixF = (float*)malloc(patchSizeFloat);
-				for (int i = 0; i < params.algorithm.patchSize; i++)
+				for (int i = 0; i < PATCH_SIZE; i++)
 					memcpy(
-						&pixF[i * params.algorithm.patchSize],
+						&pixF[i * PATCH_SIZE],
 						&img.pixelArr[(i + y_f) * img.width + x_f],
-						params.algorithm.patchSize * sizeof(float));
+						PATCH_SIZE * sizeof(float));
 
 
 				// Sum of weights
@@ -95,21 +95,21 @@ namespace CPU
 
 						// Create Pixel Array of new patch
 						float* pixG = (float*)malloc(patchSizeFloat);
-						for (int i = 0; i < params.algorithm.patchSize; i++)
+						for (int i = 0; i < PATCH_SIZE; i++)
 							memcpy(
-								&pixG[i * params.algorithm.patchSize],
+								&pixG[i * PATCH_SIZE],
 								&img.pixelArr[(i + y_g) * img.width + x_g],
-								params.algorithm.patchSize * sizeof(float));
+								PATCH_SIZE * sizeof(float));
 
 
 						// Find Euclidean Distance squared
 						double d = 0.0f;
-						for (int i = 0; i < pow(params.algorithm.patchSize, 2); i++)
+						for (int i = 0; i < pow(PATCH_SIZE, 2); i++)
 						{
 							d += pow((pixF[i] - pixG[i]), 2);
 						}
 
-						d = exp(-d / (sigmaSquared));
+						d = expf(-d / (sigmaSquared));
 
 						// Calculate non-normalized weight
 						w[y_g * wMapWidth + x_g] = d;
@@ -125,7 +125,7 @@ namespace CPU
 
 
 				// Clean pixels in batch
-				for (int i = 0; i < pow(params.algorithm.patchSize, 2); i++)
+				for (int i = 0; i < pow(PATCH_SIZE, 2); i++)
 				{
 					pixF[i] = 0.0f;
 				}
@@ -146,15 +146,15 @@ namespace CPU
 						// For the patch regarding this weight
 						// Create Pixel Array of new patch
 						float* pixG = (float*)malloc(patchSizeFloat);
-						for (int i = 0; i < params.algorithm.patchSize; i++)
+						for (int i = 0; i < PATCH_SIZE; i++)
 							memcpy(
-								&pixG[i * params.algorithm.patchSize],
+								&pixG[i * PATCH_SIZE],
 								&img.pixelArr[(i + y_g) * img.width + x_g],
-								params.algorithm.patchSize * sizeof(float));
+								PATCH_SIZE * sizeof(float));
 
 
 						// for Each pixel in the patch
-						for (int i = 0; i < pow(params.algorithm.patchSize, 2); i++)
+						for (int i = 0; i < pow(PATCH_SIZE, 2); i++)
 						{
 							pixF[i] += w[y_g * wMapWidth + x_g] * pixG[i];
 						}
@@ -164,11 +164,11 @@ namespace CPU
 
 
 				// Copy Corrected Pixels into result array
-				for (int i = 0; i < params.algorithm.patchSize; i++)
+				for (int i = 0; i < PATCH_SIZE; i++)
 				{
-					for (int j = 0; j < params.algorithm.patchSize; j++)
+					for (int j = 0; j < PATCH_SIZE; j++)
 					{
-						pix[(y_f + i) * img.width + x_f + j] = pixF[i * params.algorithm.patchSize + j];
+						pix[(y_f + i) * img.width + x_f + j] = pixF[i * PATCH_SIZE + j];
 					}
 				}
 
@@ -206,7 +206,7 @@ namespace CPU
 		log.close();
 #endif
 
-		//memcpy(&img.pixelArr[0], &pix[0], pow(img.width, 2) * sizeof(float));
+		memcpy(&img.pixelArr[0], &pix[0], pow(img.width, 2) * sizeof(float));
 
 
 		img.Write(params.input.outputDir + "/CPU_sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
