@@ -5,6 +5,10 @@
 *.cubin
 *.fatbin
 output/*
+*.lib
+*.o
+*.exe
+*.exp
 
 NLM/livelog_GPU.txt
 
