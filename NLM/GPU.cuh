@@ -22,12 +22,10 @@
 #include "device_launch_parameters.h"
 #include "cuda_device_runtime_api.h"
 #include "vector_functions.h"
-//#include "cuda/atomic"
-//#include "cuda/std/atomic"
 
 
-#define DEBUG
-#define USE_LOG_FILE
+//#define DEBUG
+//#define USE_LOG_FILE
 
 
 // Block Dimensions: 8x8 threads
@@ -40,6 +38,7 @@
 
 // Workaround for Intellisense errors
 #ifdef __INTELLISENSE__
+// Intellisense
 #define __KERNEL2(grid, block)
 #define __KERNEL3(grid, block, sh_mem)
 #define __KERNEL4(grid, block, sh_mem, stream)
@@ -51,6 +50,7 @@
 #define __fmul_rn(a,b) a*b
 #define __fdiv_rn(a,b) a/b
 #else
+// CUDA
 #define __KERNEL2(grid, block) <<< grid, block >>>
 #define __KERNEL3(grid, block, sh_mem) <<< grid, block, sh_mem >>>
 #define __KERNEL4(grid, block, sh_mem, stream) <<< grid, block, sh_mem, stream >>>
@@ -65,7 +65,7 @@ namespace GPU
 
 	int run(Parameters params);
 
-	__global__ void kernelWeightSum(float* pix_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared);
+	__global__ void kernel(float* pix_d, float* pixN_d, int imgWidth, float sigmaSquared);
 
 	int iDivUp(int a, int b);
 

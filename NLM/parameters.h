@@ -49,8 +49,6 @@ namespace parameters
 
 		struct Gpu
 		{
-			int threadsPerBlock = 32;
-
 			bool run = false;	// Run GPU algorithm
 		};
 		Gpu GPU;

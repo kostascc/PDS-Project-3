@@ -13,6 +13,7 @@ namespace GPU
 {
 
 	// Error Checking
+#ifndef cudaCheckErrors
 #define cudaCheckErrors(msg) \
     do { \
         cudaError_t __err = cudaGetLastError(); \
@@ -24,6 +25,18 @@ namespace GPU
             exit(1); \
         } \
     } while (0)
+#endif
+
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+	inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
+	{
+		if (code != cudaSuccess)
+		{
+			fprintf(stderr, "GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+			if (abort) exit(code);
+		}
+	}
 
 
 
@@ -174,7 +187,7 @@ namespace GPU
 		 *
 		 *************************************************/
 		dim3 threads(THREADS_X, THREADS_Y);
-		dim3 blocks(img.width - PATCH_SIZE, img.height - PATCH_SIZE);
+		dim3 blocks(img.width - PATCH_SIZE+1, img.height - PATCH_SIZE+1);
 
 		// Display Kernel Info
 #ifdef DEBUG
@@ -187,10 +200,13 @@ namespace GPU
 #endif
 
 
+		// __KERNEL3(a,b,c)  is translated to  <<<a,b,c>>>
+		// it has been defined as such, because intellisense doesn't recognize cuda keywords
+
 		// Run Kernel
-		kernelWeightSum __KERNEL3(blocks, threads, sharedBytesWSum) (pix_d, pixN_d, img.width, PATCH_SIZE, sigmaSquared);
+		kernel __KERNEL3(blocks, threads, sharedBytes) (pix_d, pixN_d, img.width, sigmaSquared);
 		cudaDeviceSynchronize();
-		cudaCheckErrors("Kernel: WeightSum");
+		cudaCheckErrors("Kernel: 1");
 
 
 		// Copy Resulting Pixels into hosts' image matrix
@@ -214,12 +230,11 @@ namespace GPU
 
 
 
-	__global__ void kernelWeightSum(float* pix_d, float* pixN_d, int imgWidth, int patchSize, float sigmaSquared)
+	__global__ void kernel(float* pix_d, float* pixN_d, int imgWidth, float sigmaSquared)
 	{
 
 		// Shared Memory
 		extern __shared__ float _shmem[];
-
 
 		/*******************************************************************
 		 *      wSum                              _shmem
@@ -235,7 +250,6 @@ namespace GPU
 		if (!threadIdx.y && !threadIdx.x)
 			*wSum = 0.0f;
 
-		__syncthreads();
 
 		/*******************************************************************
 		 *      pixF                              _shmem
@@ -269,30 +283,26 @@ namespace GPU
 		int patchesY = ((imgWidth - PATCH_SIZE + THREADS_Y)) / THREADS_Y;	// Number of Patches Verticaly
 		int patchesX = ((imgWidth - PATCH_SIZE + THREADS_Y)) / THREADS_X;	// Number of Patches Horizontaly
 
-
-		// Distant-Patch Coordinates (Upper Left Corner)
-		int px, py;
-
-
 		__syncthreads();
 
 		// For Each Patch
 		for (int j = 0; j < patchesY; j++)
 			for (int i = 0; i < patchesX; i++)
 			{
-				px = threadIdx.x * patchesY + i;
-				py = threadIdx.y * patchesY + j;
+
+				int px = threadIdx.x * patchesY + i;	// Patch Coordinates
+				int py = threadIdx.y * patchesY + j;	// Patch Coordinates
+
+				__syncthreads();
 
 				// Sum Only patches of different coordinates and 
 				// within boundaries
 				// (don't weight the patch with itself)
-				if ((blockIdx.x != px || blockIdx.y != py)
-					&& px < imgWidth - PATCH_SIZE && py < imgWidth - PATCH_SIZE)
+				if (px < imgWidth - PATCH_SIZE && py < imgWidth - PATCH_SIZE
+					&& (blockIdx.x != px || blockIdx.y != py))
 				{
 					// Patch at coordinates (px,py)
-
-					float d = 0.0f;	// Squuared Distance between pixF and the patch
-
+					float d = 0.0f;
 
 					// For Each pixel in the patch
 #pragma unroll
@@ -313,7 +323,6 @@ namespace GPU
 
 					// Exponential Distance
 					d = __expf(-d / sigmaSquared);
-					//w[j * patchesY + j] = d;
 					atomicAdd(wSum, d);
 
 				}
@@ -328,8 +337,8 @@ namespace GPU
 		for (int j = 0; j < patchesY; j++)
 			for (int i = 0; i < patchesX; i++)
 			{
-				px = threadIdx.x * patchesY + i;
-				py = threadIdx.y * patchesY + j;
+				int px = threadIdx.x * patchesY + i;	// Patch Coordinates
+				int py = threadIdx.y * patchesY + j;	// Patch Coordinates
 
 
 				// Sum Only patches of different coordinates and 

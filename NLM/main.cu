@@ -67,11 +67,6 @@ int main(int argc, char* argv[])
 			params.algorithm.sigma = (i < argc) ? atof(argv[i]) : 0.05f;
 		}
 
-		/*else if ((string(argv[i]) == "-p")) {
-			i++;
-			params.algorithm.patchSize = (i < argc) ? atoi(argv[i]) : 5;
-		}*/
-
 	}
 
 	// Force Set OMP Threads

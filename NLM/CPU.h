@@ -17,10 +17,10 @@
 #include <omp.h>
 
 
-#define USE_LOG_FILE
-#define LOG_W_SUMS
+//#define USE_LOG_FILE
+//#define LOG_W_SUMS
 
-#define USE_OPENMP
+//#define USE_OPENMP
 
 #define PATCH_SIZE 5
 
