@@ -1,4 +1,4 @@
-﻿/**
+/**
  * (C) 2021 Konstantinos Chatzis
  * Aristotle University of Thessaloniki
  **/
@@ -11,6 +11,20 @@ using namespace std;
 
 namespace GPU
 {
+
+	// Error Checking
+#define cudaCheckErrors(msg) \
+    do { \
+        cudaError_t __err = cudaGetLastError(); \
+        if (__err != cudaSuccess) { \
+            fprintf(stderr, "Fatal error: %s (%s at %s:%d)\n", \
+                msg, cudaGetErrorString(__err), \
+                __FILE__, __LINE__); \
+            fprintf(stderr, "*** FAILED - ABORTING\n"); \
+            exit(1); \
+        } \
+    } while (0)
+
 
 
 	int run(Parameters params)
