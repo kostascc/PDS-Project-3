@@ -126,7 +126,7 @@ namespace utils
 	/**************************
 	 *      Miscellaneous
 	 **************************/
-	static class Func
+	class Func
 	{
 	public:
 
