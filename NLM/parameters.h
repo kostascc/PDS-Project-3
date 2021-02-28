@@ -16,6 +16,7 @@ using namespace std;
 
 #define DEBUG
 
+#define PATCH_SIZE 5
 
 namespace parameters
 {
@@ -26,7 +27,7 @@ namespace parameters
 		struct Algorithm
 		{
 
-			float sigma = 0.13f;
+			float sigma = 0.15f;
 
 		};
 		Algorithm algorithm;
