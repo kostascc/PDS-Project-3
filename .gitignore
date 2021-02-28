@@ -4,7 +4,6 @@
 *.ptx
 *.cubin
 *.fatbin
-output/*
 *.lib
 *.o
 *.exe
