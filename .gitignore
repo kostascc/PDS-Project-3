@@ -13,3 +13,5 @@ output/*
 NLM/livelog_GPU.txt
 
 NLM/livelog_CPU.txt
+
+report/~$times.xlsx
