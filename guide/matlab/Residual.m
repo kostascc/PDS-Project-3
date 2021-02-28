@@ -1,6 +1,9 @@
 %% Read Images
-[indimage_in, rgbmap_in] = imread('../../input/<Input BMP>');
-[indimage_out, rgbmap_out] = imread('../../output/<Output BMP>');
+img_in = imread('../../input/<input bitmap>.bmp');
+img_out = imread('../../output/<output bitmap>.bmp');
 
-indimage = abs(indimage_in - indimage_out);
+fig = figure;
+indimage = 2 .* abs(img_out-img_in);
 image(indimage)
+saveas(fig,'../../output/RES_<output bitmap>.bmp')
+close all;
