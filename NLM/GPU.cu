@@ -183,7 +183,7 @@ namespace GPU
 		 *
 		 *************************************************/
 		dim3 threads(THREADS_X, THREADS_Y);
-		dim3 blocks(img.width - PATCH_SIZE+1, img.height - PATCH_SIZE+1);
+		dim3 blocks(img.width - PATCH_SIZE + 1, img.height - PATCH_SIZE + 1);
 
 		// Display Kernel Info
 #ifdef DEBUG
@@ -192,7 +192,8 @@ namespace GPU
 			<< "[" << blocks.x << "," << blocks.y << "] / "
 			<< "[" << threads.x << "," << threads.y << "] / "
 			<< POW2(img.width - PATCH_SIZE) << "\n"
-			<< "> Shared Memory Per ThreadBlock: " << sharedBytes << " B\n";
+			<< "> Shared Memory Per ThreadBlock: " << sharedBytes / (1 << 10) << " KB\n"
+			<< "> Shared Memory Per ThreadBlock: " << blocks.x * blocks.y * sharedBytes / (1 << 10) << " KB\n";
 #endif
 
 		// Start Clock
@@ -204,8 +205,9 @@ namespace GPU
 
 		// Run Kernel
 		kernel __KERNEL3(blocks, threads, sharedBytes) (pix_d, pixN_d, img.width, sigmaSquared);
+		cudaCheckErrors("Kernel: 1 Initialize");
 		cudaDeviceSynchronize();
-		cudaCheckErrors("Kernel: 1");
+		cudaCheckErrors("Kernel: 1 Synchronize");
 
 		cout << "GPU Took " << clock.stopClock() << "\n";
 
