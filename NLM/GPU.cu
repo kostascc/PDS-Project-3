@@ -279,6 +279,11 @@ namespace GPU
 			pixF[threadIdx.y * PATCH_SIZE + threadIdx.x]
 			= pixN_d[(blockIdx.y + threadIdx.y) * imgWidth + (blockIdx.x + threadIdx.x)];
 
+		float* pixR = (float*)&_shmem[1+POW2(PATCH_SIZE)];
+		if (threadIdx.y < PATCH_SIZE && threadIdx.x < PATCH_SIZE)
+
+			pixR[threadIdx.y * PATCH_SIZE + threadIdx.x]= 0.0f;
+
 
 		// Number of patches to be cheked in a thread
 		int patchesY = ((imgWidth - PATCH_SIZE + THREADS_Y)) / THREADS_Y;	// Number of Patches Verticaly
@@ -318,7 +323,7 @@ namespace GPU
 								pixN_d[(py + yy) * imgWidth + (px + xx)]
 							);
 							// Find Power of 2, add to squared Distance
-							d += __fmul_rn(a, a);
+							d += POW2(a);
 						}
 					}
 
@@ -366,20 +371,20 @@ namespace GPU
 								pixN_d[(py + yy) * imgWidth + (px + xx)]
 							);
 							// Find Power of 2, add to squared Distance
-							d += __fmul_rn(a, a);
+							d += POW2(a);
 						}
 					}
 
 					// Exponential Distance
 					d = __expf(-d / sigmaSquared);
-					d = __fdiv_rn(d, *wSum);
+					d /= _shmem[0];
 
 					// For Each pixel in the same patch
 					for (int yy = 0; yy < PATCH_SIZE; yy++)
 						for (int xx = 0; xx < PATCH_SIZE; xx++)
 						{
 							// Apply weighted pixel to shared memory
-							pixF[yy * PATCH_SIZE + xx] += __fmul_rn(d, pixN_d[(py + yy) * imgWidth + (px + xx)]);
+							atomicAdd(&pixR[yy * PATCH_SIZE + xx], d * pixN_d[(py + yy) * imgWidth + (px + xx)]);
 						}
 
 				}
@@ -388,8 +393,8 @@ namespace GPU
 		__syncthreads();
 
 		// Copy pixels from Shared Memory to resulting image
-		if (threadIdx.x < PATCH_SIZE && threadIdx.y < PATCH_SIZE)
-			pix_d[(blockIdx.y + threadIdx.y) * imgWidth + blockIdx.x + threadIdx.x] = pixF[threadIdx.y * PATCH_SIZE + threadIdx.x];
+		if (threadIdx.x < PATCH_SIZE && threadIdx.y < PATCH_SIZE && blockIdx.x < imgWidth && blockIdx.y < imgWidth)
+			pix_d[(blockIdx.y + threadIdx.y) * imgWidth + blockIdx.x + threadIdx.x] = pixR[threadIdx.y * PATCH_SIZE + threadIdx.x];
 
 
 		return;
