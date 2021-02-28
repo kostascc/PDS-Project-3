@@ -34,7 +34,6 @@
 #define THREADS_X 8
 #define THREADS_Y 8
 
-#define PATCH_SIZE 5
 
 // Workaround for Intellisense errors
 #ifdef __INTELLISENSE__

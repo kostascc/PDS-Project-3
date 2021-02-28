@@ -20,7 +20,7 @@
 //#define USE_LOG_FILE
 //#define LOG_W_SUMS
 
-//#define USE_OPENMP
+#define USE_OPENMP
 
 
 using namespace std;

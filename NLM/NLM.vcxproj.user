@@ -8,12 +8,16 @@
     <LocalDebuggerCommandArguments>-gpu -o ../output -i ../input/rectangular_128x128_n4.bmp</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_CPU_x64|x64'">
+    <LocalDebuggerCommandArguments>-cpu -o ../output -i ../input/rectangular_64x64_n4.bmp</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_x256|x64'">
     <LocalDebuggerCommandArguments>-gpu -o ../output -i ../input/rectangular_256x256_n4.bmp</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-gpu -o ../output -i ../input/interior_256x256_n7.bmp</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-gpu -o ../output -i ../input/brick_building_340x340_n7.bmp</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

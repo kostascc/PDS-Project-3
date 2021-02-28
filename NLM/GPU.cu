@@ -47,7 +47,7 @@ namespace GPU
 #ifdef DEBUG
 		cout << "GPU Starting \n";
 #endif
-
+		cout << "Patch Size: " << PATCH_SIZE << "x" << PATCH_SIZE << "\n";
 
 		utils::ImageFile img = utils::ImageFile();
 		img.Read(params.input.imgPath);
@@ -96,30 +96,6 @@ namespace GPU
 		cudaCheckErrors("Memset: pix_d");
 
 
-
-		/*********************************************
-		 *   Weight Sums
-		 *
-		 *   ~ ~ ~ ~ ~ ~ ~ ~
-		 *   ~ ~ ~ ~ ~ ~ ~ ~
-		 *   ~ ~ ~ ~ ~ ~ ~ ~
-		 *   ~ ~ ~ ~ ~ ~ ~ ~
-		 *   ~ ~ ~ ~ ~ ~ ~ ~
-		 *   ~ ~ ~ ~ ~ ~ ~ ~  ← [img_height - patch_size]
-		 *                 ↑
-		 *         [img_width - patch_size]
-		 *********************************************/
-
-
-		 // Device's Weight Sums
-		 // (img_width-patch_size) * (img_width-patch_size)
-		//float* wSum_d;
-		//cudaMalloc(&wSum_d, (img.width - PATCH_SIZE) * (img.width - PATCH_SIZE) * sizeof(float));
-		//cudaCheckErrors("Malloc: wSum_d");
-		//// Set Weight 
-		//cudaMemset(wSum_d, 0.0f, (img.width - PATCH_SIZE) * (img.width - PATCH_SIZE) * sizeof(float));
-		//cudaCheckErrors("Memset: wSum_d");
-
 		/*************************************************
 		 *   Shared Memory (per ThreadBlock)
 		 *
@@ -132,7 +108,7 @@ namespace GPU
 		 *   [ 1 + (patch_size * patch_size) ] * <float>
 		 *************************************************/
 		 // Shared memory (Bytes)
-		int sharedBytes = (1 + POW2(PATCH_SIZE)) * sizeof(float);
+		int sharedBytes = (1 + 2*POW2(PATCH_SIZE)) * sizeof(float);
 
 
 		/*************************************************
@@ -278,7 +254,7 @@ namespace GPU
 
 			pixF[threadIdx.y * PATCH_SIZE + threadIdx.x]
 			= pixN_d[(blockIdx.y + threadIdx.y) * imgWidth + (blockIdx.x + threadIdx.x)];
-
+		
 		__syncthreads();
 
 		float* pixR = (float*)&_shmem[1 + POW2(PATCH_SIZE)];

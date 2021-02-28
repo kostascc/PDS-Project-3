@@ -27,7 +27,7 @@ namespace parameters
 		struct Algorithm
 		{
 
-			float sigma = 0.15f;
+			float sigma = 0.13f;
 
 		};
 		Algorithm algorithm;
