@@ -279,19 +279,21 @@ namespace GPU
 			pixF[threadIdx.y * PATCH_SIZE + threadIdx.x]
 			= pixN_d[(blockIdx.y + threadIdx.y) * imgWidth + (blockIdx.x + threadIdx.x)];
 
-		float* pixR = (float*)&_shmem[1+POW2(PATCH_SIZE)];
+		__syncthreads();
+
+		float* pixR = (float*)&_shmem[1 + POW2(PATCH_SIZE)];
 		if (threadIdx.y < PATCH_SIZE && threadIdx.x < PATCH_SIZE)
 
-			pixR[threadIdx.y * PATCH_SIZE + threadIdx.x]= 0.0f;
+			pixR[threadIdx.y * PATCH_SIZE + threadIdx.x] = 0.0f;
+
+		__syncthreads();
 
 
 		// Number of patches to be cheked in a thread
 		int patchesY = ((imgWidth - PATCH_SIZE + THREADS_Y)) / THREADS_Y;	// Number of Patches Verticaly
 		int patchesX = ((imgWidth - PATCH_SIZE + THREADS_Y)) / THREADS_X;	// Number of Patches Horizontaly
 
-		__syncthreads();
 
-		// For Each Patch
 		for (int j = 0; j < patchesY; j++)
 			for (int i = 0; i < patchesX; i++)
 			{
@@ -300,6 +302,8 @@ namespace GPU
 				int py = threadIdx.y * patchesY + j;	// Patch Coordinates
 
 				__syncthreads();
+
+
 
 				// Sum Only patches of different coordinates and 
 				// within boundaries
@@ -331,6 +335,19 @@ namespace GPU
 					d = __expf(-d / sigmaSquared);
 					atomicAdd(wSum, d);
 
+
+					// For Each pixel in the same patch
+#pragma unroll
+					for (int yy = 0; yy < PATCH_SIZE; yy++)
+					{
+#pragma unroll
+						for (int xx = 0; xx < PATCH_SIZE; xx++)
+						{
+							// Apply weighted pixel to shared memory
+							atomicAdd(&pixR[yy * PATCH_SIZE + xx], d * pixN_d[(py + yy) * imgWidth + (px + xx)]);
+						}
+					}
+
 				}
 			}
 
@@ -339,62 +356,72 @@ namespace GPU
 		__syncthreads();
 
 
-		// For Each Patch
-		for (int j = 0; j < patchesY; j++)
-			for (int i = 0; i < patchesX; i++)
-			{
-				int px = threadIdx.x * patchesY + i;	// Patch Coordinates
-				int py = threadIdx.y * patchesY + j;	// Patch Coordinates
-
-
-				// Sum Only patches of different coordinates and 
-				// within boundaries
-				// (don't weight the patch with itself)
-				if ((blockIdx.x != px || blockIdx.y != py)
-					&& px < imgWidth - PATCH_SIZE && py < imgWidth - PATCH_SIZE)
-				{
-					// Patch at coordinates (px,py)
-
-					float d = 0.0f;	// Squuared Distance between pixF and the patch
-
-
-					// For Each pixel in the patch
-#pragma unroll
-					for (int yy = 0; yy < PATCH_SIZE; yy++)
-					{
-#pragma unroll
-						for (int xx = 0; xx < PATCH_SIZE; xx++)
-						{
-							// Substract vectors 
-							float a = __fsub_rn(
-								pixF[yy * PATCH_SIZE + xx],
-								pixN_d[(py + yy) * imgWidth + (px + xx)]
-							);
-							// Find Power of 2, add to squared Distance
-							d += POW2(a);
-						}
-					}
-
-					// Exponential Distance
-					d = __expf(-d / sigmaSquared);
-					d /= _shmem[0];
-
-					// For Each pixel in the same patch
-					for (int yy = 0; yy < PATCH_SIZE; yy++)
-						for (int xx = 0; xx < PATCH_SIZE; xx++)
-						{
-							// Apply weighted pixel to shared memory
-							atomicAdd(&pixR[yy * PATCH_SIZE + xx], d * pixN_d[(py + yy) * imgWidth + (px + xx)]);
-						}
-
-				}
-			}
-
-		__syncthreads();
-
 		// Copy pixels from Shared Memory to resulting image
 		if (threadIdx.x < PATCH_SIZE && threadIdx.y < PATCH_SIZE && blockIdx.x < imgWidth && blockIdx.y < imgWidth)
-			pix_d[(blockIdx.y + threadIdx.y) * imgWidth + blockIdx.x + threadIdx.x] = pixR[threadIdx.y * PATCH_SIZE + threadIdx.x];
+			pix_d[(blockIdx.y + threadIdx.y) * imgWidth + blockIdx.x + threadIdx.x] = pixR[threadIdx.y * PATCH_SIZE + threadIdx.x] / *wSum;
+
+
+
+//
+//		// For Each Patch
+//		for (int j = 0; j < patchesY; j++)
+//			for (int i = 0; i < patchesX; i++)
+//			{
+//				int px = threadIdx.x * patchesY + i;	// Patch Coordinates
+//				int py = threadIdx.y * patchesY + j;	// Patch Coordinates
+//
+//
+//				// Sum Only patches of different coordinates and 
+//				// within boundaries
+//				// (don't weight the patch with itself)
+//				if ((blockIdx.x != px || blockIdx.y != py)
+//					&& px < imgWidth - PATCH_SIZE && py < imgWidth - PATCH_SIZE)
+//				{
+//					// Patch at coordinates (px,py)
+//
+//					float d = 0.0f;	// Squuared Distance between pixF and the patch
+//
+//
+//					// For Each pixel in the patch
+//#pragma unroll
+//					for (int yy = 0; yy < PATCH_SIZE; yy++)
+//					{
+//#pragma unroll
+//						for (int xx = 0; xx < PATCH_SIZE; xx++)
+//						{
+//							// Substract vectors 
+//							float a = __fsub_rn(pixF[yy * PATCH_SIZE + xx],
+//								pixN_d[(py + yy) * imgWidth + (px + xx)]
+//							);
+//							// Find Power of 2, add to squared Distance
+//							d += POW2(a);
+//						}
+//					}
+//
+//					// Exponential Distance
+//					d = __expf(__fdiv_rn(-d, sigmaSquared));
+//					d /= _shmem[0];
+//
+//					// For Each pixel in the same patch
+//#pragma unroll
+//					for (int yy = 0; yy < PATCH_SIZE; yy++)
+//					{
+//#pragma unroll
+//						for (int xx = 0; xx < PATCH_SIZE; xx++)
+//						{
+//							// Apply weighted pixel to shared memory
+//							atomicAdd(&pixR[yy * PATCH_SIZE + xx], d * pixN_d[(py + yy) * imgWidth + (px + xx)]);
+//						}
+//					}
+//
+//				}
+//
+//			}
+
+
+		//// Copy pixels from Shared Memory to resulting image
+		//if (threadIdx.x < PATCH_SIZE && threadIdx.y < PATCH_SIZE && blockIdx.x < imgWidth && blockIdx.y < imgWidth)
+		//	pix_d[(blockIdx.y + threadIdx.y) * imgWidth + blockIdx.x + threadIdx.x] = pixR[threadIdx.y * PATCH_SIZE + threadIdx.x];
 
 
 		return;
