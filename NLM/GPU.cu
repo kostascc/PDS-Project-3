@@ -192,8 +192,8 @@ namespace GPU
 			<< "[" << blocks.x << "," << blocks.y << "] / "
 			<< "[" << threads.x << "," << threads.y << "] / "
 			<< POW2(img.width - PATCH_SIZE) << "\n"
-			<< "> Shared Memory Per ThreadBlock: " << sharedBytes / (1 << 10) << " KB\n"
-			<< "> Shared Memory Per ThreadBlock: " << blocks.x * blocks.y * sharedBytes / (1 << 10) << " KB\n";
+			<< "> Shared Memory Per ThreadBlock: " << sharedBytes << " B\n"
+			<< "> Total Shared Memory: " << blocks.x * blocks.y * sharedBytes / (1 << 10) << " KB\n";
 #endif
 
 		// Start Clock
