@@ -35,7 +35,10 @@
 #define THREADS_Y 8
 
 
-// Workaround for Intellisense errors
+/**
+ * Workaround for hiding CUDA function and keyword errors, in 
+ * Intellisense environments, such as Visual Studio
+ **/
 #ifdef __INTELLISENSE__
 // Intellisense
 #define __KERNEL2(grid, block)
@@ -64,8 +67,19 @@ namespace GPU
 
 	int run(Parameters params);
 
+	/**
+	 * Cuda Kernel
+	 * @param pix_d Pixels of Resulting Image
+	 * @param pixN_d Pixels of Noisy Image
+	 * @param imgWidth Width and Height of Image (Pixels)
+	 * @param sigmaSquared The sigma parameter squareed
+	 **/
 	__global__ void kernel(float* pix_d, float* pixN_d, int imgWidth, float sigmaSquared);
 
+	/**
+	 * Divide with upwards rounding
+	 * Provided by nvidia in CUDA samples
+	 **/
 	int iDivUp(int a, int b);
 
 }

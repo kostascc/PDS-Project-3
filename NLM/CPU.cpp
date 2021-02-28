@@ -190,9 +190,9 @@ namespace CPU
 
 #ifdef USE_LOG_FILE
 
-		log << "\n\n";
+		/*log << "\n\n";
 
-		/*for (int i = 0; i < 16; i++)
+		for (int i = 0; i < 16; i++)
 		{
 			for (int j = 0; j < 16; j++)
 			{
