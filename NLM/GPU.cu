@@ -223,7 +223,7 @@ namespace GPU
 
 
 		// Save Image
-		img.Write(params.input.outputDir + "/GPU_sigma" + to_string(params.algorithm.sigma) + "_" + utils::ImageFile::GetFileName(params.input.imgPath));
+		img.Write(params.input.outputDir + "/GPU_sigma" + to_string(params.algorithm.sigma) + "_patch" + to_string(PATCH_SIZE) + "__" + utils::ImageFile::GetFileName(params.input.imgPath));
 
 
 		return 0;

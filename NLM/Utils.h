@@ -30,7 +30,6 @@
 #define MAX_NUMBER_OF_COLORS 0
 #define ALL_COLORS_REQUIRED 0
 
-//#define DEBUG
 #define ONLY_8_BIT_BMP
 #define ONLY_RECTANGULAR
 #define NORMALIZE_PIXELS

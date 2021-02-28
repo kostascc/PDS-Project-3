@@ -22,7 +22,6 @@
 
 //#define USE_OPENMP
 
-#define PATCH_SIZE 5
 
 using namespace std;
 using namespace parameters;
